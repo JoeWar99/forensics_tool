@@ -20,6 +20,9 @@ int main(int argc, char * argv[], char * envp[]) {
     /* Output file (NULL if -o not set) */
     char * out_file = NULL;
 
+    /* Log file name (NULL if -v not set) */
+    char * log_file = NULL;
+
     for (int i = 1 ; i < argc-1; i++) {
         /* Found -r flag */
         if (!strcmp(argv[i], "-r")) {
@@ -39,6 +42,9 @@ int main(int argc, char * argv[], char * envp[]) {
             }
             /* Update flag */
             flags |= FLAGS_V;
+
+            /* Get log file name from environment variable */
+            log_file = getenv("LOGFILENAME");
         }
 
         /* Found -h flag */
@@ -123,6 +129,7 @@ int main(int argc, char * argv[], char * envp[]) {
 
     printf("%2x\n", flags);
     if (out_file != NULL) printf("%s\n", out_file);
+    if (log_file != NULL) printf("%s\n", log_file);
     printf("%s\n", start_point);
 
     return 0;

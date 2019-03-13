@@ -11,7 +11,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outfile)
+int file_forensic(char flag, char *start_point, char *outfile)
 {
 	// TODO: analisar ficheiro
 	// file_name,file_type,file_size,file_access,file_created_date,file_modification_date,md5,sha1,sha256
@@ -21,6 +21,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 	pid_t pid;
 	struct tm ts;
+	struct stat stat_buf;
 	char buf[80];
 	char buffer[100];
 	int n;
@@ -44,6 +45,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		wait(NULL);
 	}
 
+	write(STDOUT_FILENO, ",", 1);
 	n = sprintf(buffer1, "%ld,", stat_buf.st_size);
 	write(STDOUT_FILENO, buffer1, n);
 	n =sprintf(buffer, "%u,", stat_buf.st_mode);
@@ -75,7 +77,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		pid = fork();
 		if (pid == 0)
 		{
-			if (execlp("sha1sum", "sha1sum", start_point, NULL) == -1)
+			if (execlp("sha1sum", "sha1sum", "-z", start_point, NULL) == -1)
 			{
 				printf("Erro ao executar exelp\n");
 				exit(1);
@@ -93,7 +95,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		pid = fork();
 		if (pid == 0)
 		{
-			if (execlp("sha256sum", "sha256sum", start_point, NULL) == -1)
+			if (execlp("sha256sum", "sha256sum", "-z", start_point, NULL) == -1)
 			{
 				printf("Erro ao executar exelp\n");
 				exit(1);
@@ -113,7 +115,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		pid = fork();
 		if (pid == 0)
 		{
-			if (execlp("md5sum", "md5sum", start_point, NULL) == -1)
+			if (execlp("md5sum", "md5sum", "-z", start_point, NULL) == -1)
 			{
 				printf("Erro ao executar exelp\n");
 				exit(1);
@@ -126,10 +128,52 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 		write(STDOUT_FILENO, ",", 1);
 	}
+	write(STDOUT_FILENO, "\n", 1);
 	if(flag & FLAGS_O){
 		close(filedes);
 	}
-	exit(0);
+	return 0;
+}
+
+int dir_forensic(char flag, char *start_point, char *outfile) {
+
+	DIR * dirp;
+	struct dirent *direntp;
+	struct stat stat_buf;
+	char name[260];
+
+	/* Open directory */
+	if ((dirp = opendir(start_point)) == NULL){
+		perror("start_point");
+		exit(1);
+	}
+
+	/* Read the specified directory */
+	while((direntp = readdir(dirp)) != NULL) {
+
+		/* Skip . and .. directories */
+		if (!strcmp(direntp->d_name, "..") || !strcmp(direntp->d_name, ".")) continue;
+
+		/* Assemble new file/directory name */
+		sprintf(name,"%s/%s",start_point,direntp->d_name);
+
+		/* Retrieve information */
+		if (lstat(name, &stat_buf)==-1)
+		{
+			perror("lstat ERROR");
+			exit(3);
+		}
+
+		/* If its a file print its information */
+		if (S_ISREG(stat_buf.st_mode)) file_forensic(flag, name, outfile);
+
+		/* If its a directory and recursive bit is on, read subdirectories */
+		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R) dir_forensic(flag, name, outfile);
+	}
+	/* Close opened directory */
+ 	closedir(dirp);
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -188,7 +232,14 @@ int main(int argc, char *argv[])
 	if (log_file != NULL)
 		printf("%s\n", log_file);
 	//printf("%s\n", start_point);
-	file_forensic(flags, start_point, stat_buf, out_file);
+
+	/* If its a file display its info */
+	if (S_ISREG(stat_buf.st_mode))
+		file_forensic(flags, start_point, out_file);
+		
+	/* If its a directory go inside it */
+	else if (S_ISDIR(stat_buf.st_mode))
+		dir_forensic(flags, start_point, out_file);
 
 	return 0;
 }

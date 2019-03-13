@@ -11,7 +11,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-int file_forensic(char flag, char *start_point, char *outfile)
+int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outfile)
 {
 	// TODO: analisar ficheiro
 	// file_name,file_type,file_size,file_access,file_created_date,file_modification_date,md5,sha1,sha256
@@ -21,7 +21,6 @@ int file_forensic(char flag, char *start_point, char *outfile)
 
 	pid_t pid;
 	struct tm ts;
-	struct stat stat_buf;
 	char buf[80];
 	char buffer[100];
 	int n;
@@ -165,10 +164,25 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 		}
 
 		/* If its a file print its information */
-		if (S_ISREG(stat_buf.st_mode)) file_forensic(flag, name, outfile);
+		if (S_ISREG(stat_buf.st_mode)) file_forensic(flag, name, stat_buf, outfile);
 
 		/* If its a directory and recursive bit is on, read subdirectories */
-		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R) dir_forensic(flag, name, outfile);
+		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R) {
+
+			/* Create a child */
+			pid_t pid = fork();
+
+			/* Fork error */
+			if (pid == -1) {
+				perror("fork");
+				exit(1);
+			}
+			/* Look recursively through the folder */
+			if (pid == 0) {
+				dir_forensic(flag, name, outfile);
+				exit(0);
+			}
+		}
 	}
 	/* Close opened directory */
  	closedir(dirp);
@@ -219,13 +233,6 @@ int main(int argc, char *argv[])
 	if (flags & FLAGS_V)
 		log_file = getenv("LOGFILENAME");
 
-	if (S_ISREG(stat_buf.st_mode))
-		printf("regular\n");
-	else if (S_ISDIR(stat_buf.st_mode))
-		printf("directory\n");
-	else
-		printf("other\n");
-
 	//printf("0x%x\n", flags);
 	if (out_file != NULL)
 		printf("%s\n", out_file);
@@ -235,8 +242,8 @@ int main(int argc, char *argv[])
 
 	/* If its a file display its info */
 	if (S_ISREG(stat_buf.st_mode))
-		file_forensic(flags, start_point, out_file);
-		
+		file_forensic(flags, start_point, stat_buf, out_file);
+
 	/* If its a directory go inside it */
 	else if (S_ISDIR(stat_buf.st_mode))
 		dir_forensic(flags, start_point, out_file);

@@ -26,6 +26,11 @@ int main(int argc, char * argv[]) {
 	/* argc - 2: without ./forensic + <file|dir> */
 	flags = parse_cmd(argc - 2, &argv[1], &out_file);
 
+	if(flags & FLAGS_ERROR){
+		printf("Usage: ./forensic [-r] [-h [md5[,sha1[,sha256]]] [-o <outfile>] [-v] <file|dir>\n");
+        exit(1);
+	}
+
 	// TODO: LOGFILE
 	/* Get log file name from environment variable */
 	if(flags & FLAGS_V)

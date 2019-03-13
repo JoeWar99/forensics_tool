@@ -11,8 +11,9 @@ char parse_cmd(int argc, char * argv[], char * output[]){
         /* Found -r flag */
         if (!strcmp(argv[i], "-r")) {
             if (flags & FLAGS_R) {
-                printf("Repeated -r flag\n");
-                exit(1);
+				fprintf(stderr, "Repeated -r flag\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
             /* Update flag */
             flags |= FLAGS_R;
@@ -21,8 +22,9 @@ char parse_cmd(int argc, char * argv[], char * output[]){
         /* Found -v flag */
         else if (!strcmp(argv[i], "-v")) {
             if (flags & FLAGS_V) {
-                printf("Repeated -v flag\n");
-                exit(1);
+				fprintf(stderr, "Repeated -v flag\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
             /* Update flag */
             flags |= FLAGS_V;
@@ -31,8 +33,9 @@ char parse_cmd(int argc, char * argv[], char * output[]){
         /* Found -h flag */
         else if (!strcmp(argv[i], "-h")) {
             if (flags & FLAGS_H) {
-                printf("Repeated -h flag\n");
-                exit(1);
+				fprintf(stderr, "Repeated -h flag\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
             /* Update flag */
             flags |= FLAGS_H;
@@ -41,37 +44,42 @@ char parse_cmd(int argc, char * argv[], char * output[]){
             char * algorithms = argv[i+1];
             char * next = strtok(algorithms, ",");
             if (next == NULL) {
-                printf("-h flag requires an algorithm\n");
-                exit(1);
+				fprintf(stderr, "-h flag requires an algorithm\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
             while(next != NULL) {
                 if (!strcmp(next, "md5")) {
                     if (flags & FLAGS_MD5) {
-                        printf("Repeated md5 algorithm\n");
-                        exit(1);
+						fprintf(stderr, "Repeated md5 algorithm\n");
+                        flags |= FLAGS_ERROR;
+						return flags;
                     }
                     /* Update flag */
                     flags |= FLAGS_MD5;
                 }
                 else if (!strcmp(next, "sha1")) {
                     if (flags & FLAGS_SHA1) {
-                        printf("Repeated sha1 algorithm\n");
-                        exit(1);
+						fprintf(stderr, "Repeated sha1 algorithm\n");
+                        flags |= FLAGS_ERROR;
+						return flags;
                     }
                     /* Update flag */
                     flags |= FLAGS_SHA1;
                 }
                 else if (!strcmp(next, "sha256")) {
                     if (flags & FLAGS_SHA256) {
-                        printf("Repeated sha256 algorithm\n");
-                        exit(1);
+						fprintf(stderr, "Repeated sha256 algorithm\n");
+                        flags |= FLAGS_ERROR;
+						return flags;
                     }
                     /* Update flag */
                     flags |= FLAGS_SHA256;
                 }
                 else {
-                    printf("Invalid algorithm specified: %s\n", next);
-                    exit(1);
+					fprintf(stderr, "Invalid algorithm specified: %s\n", next);
+                    flags |= FLAGS_ERROR;
+					return flags;
                 }
 
                 /* Get next string */
@@ -84,13 +92,15 @@ char parse_cmd(int argc, char * argv[], char * output[]){
         /* Found -o flag */
         else if (!strcmp(argv[i], "-o")) {
             if (flags & FLAGS_O) {
-                printf("Repeated -o flag\n");
-                exit(1);
+				fprintf(stderr, "Repeated -o flag\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
             /* Check for outfile name */
             if (i >= argc+1) {
-                printf("-o flag requires an outfile name\n");
-                exit(1);
+				fprintf(stderr, "-o flag requires an outfile name\n");
+                flags |= FLAGS_ERROR;
+				return flags;
             }
 
             /* Update flag and out_file */
@@ -104,10 +114,11 @@ char parse_cmd(int argc, char * argv[], char * output[]){
 
         /* Do not accept any other option */
         else {
-            printf("Invalid option: %s\n", argv[i]);
-            exit(1);
+			fprintf(stderr, "Invalid option: %s\n", argv[i]);
+            flags |= FLAGS_ERROR;
+			return flags;
         }
     }
-	
+
 	return flags;
 }

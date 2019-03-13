@@ -97,6 +97,7 @@ char parse_cmd(int argc, char * argv[], char * output[]){
 				return flags;
             }
             /* Check for outfile name */
+			// TODO: test this condition
             if (i >= argc+1) {
 				fprintf(stderr, "-o flag requires an outfile name\n");
                 flags |= FLAGS_ERROR;

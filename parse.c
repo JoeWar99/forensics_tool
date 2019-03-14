@@ -37,6 +37,14 @@ char parse_cmd(int argc, char * argv[], char * output[]){
                 flags |= FLAGS_ERROR;
 				return flags;
             }
+
+            /* -h requires something in front */
+            if (i >= argc-1) {
+				fprintf(stderr, "-h flag requires an algorithm\n");
+                flags |= FLAGS_ERROR;
+				return flags;
+            }
+
             /* Update flag */
             flags |= FLAGS_H;
 
@@ -97,8 +105,8 @@ char parse_cmd(int argc, char * argv[], char * output[]){
 				return flags;
             }
             /* Check for outfile name */
-			// TODO: test this condition
-            if (i >= argc+1) {
+			// TODO: think about how this should work. Accept -v as file name for example???
+            if (i >= argc-1) {
 				fprintf(stderr, "-o flag requires an outfile name\n");
                 flags |= FLAGS_ERROR;
 				return flags;

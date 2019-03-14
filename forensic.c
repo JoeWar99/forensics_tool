@@ -40,17 +40,27 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
         printf("Error opening file pipe!\n");
         return -1;
     }
-	// TODO: not working properly in scripts
+
+	int started = 0;
+	char * next;
     while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
-        char * next = strtok(buf, ":");
-		write(STDOUT_FILENO, next, strlen(next));
-		write(STDOUT_FILENO, ",", 1);
-		next = strtok(NULL, ",");
+		if (!started) {
+			next = strtok(buf, ":");
+			write(STDOUT_FILENO, next, strlen(next));
+			write(STDOUT_FILENO, ",", 1);
+			next = strtok(NULL, ",");
+			started = 1;
+		}
+		else
+			next = strtok(buf, ",");
+
 		while(next != NULL){
-			if('\n' == next[strlen(next) - 1])
-				write(STDOUT_FILENO, ++next, strlen(next)-1);
-			else
-				write(STDOUT_FILENO, ++next, strlen(next));
+			if('\n' == next[strlen(next) - 1]) {
+				write(STDOUT_FILENO, next+1, strlen(next)-2);
+			}
+			else {
+				write(STDOUT_FILENO, next+1, strlen(next));
+			}
 			write(STDOUT_FILENO, ",", 1);
 			next = strtok(NULL, ",");
 		}

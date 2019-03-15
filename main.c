@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
 
 	/* File or directory specified */
 	char *start_point = argv[argc - 1];
+
 	struct stat stat_buf;
 
 	/* Test start_point exsitence */
@@ -120,8 +121,13 @@ int main(int argc, char *argv[])
 		file_forensic(flags, start_point, stat_buf, out_file);
 
 	/* If its a directory go inside it */
-	else if (S_ISDIR(stat_buf.st_mode))
+	else if (S_ISDIR(stat_buf.st_mode)) {
+		/* Remove slash at the end */
+		if (start_point[strlen(start_point)-1] == '/')
+			memset(start_point+strlen(start_point)-1, '\0', 1);
+			
 		dir_forensic(flags, start_point, out_file);
+		}
 
 	return 0;
 }

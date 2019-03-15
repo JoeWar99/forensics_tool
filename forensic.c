@@ -25,24 +25,8 @@ void concat(char* str1[], char* str2, int n) {
 
 	/* Concatenate str2 */
 	strncat(*str1, str2, len2);
-
-	// TODO
-	// Ele aqui fica bem, mas depois na funcao principal nao fica
-	printf("%s\n", *str1);
 }
 
-/*
-void append_string(char* str1, char* str2) { 
-	printf(">1 %s\n", str1);
-	//char * prev = str1;
-	str1 = concat(str1, str2, strlen(str2)); 
-	//free(prev);
-	printf(">2 %s\n", str1);
-}
-void append_string_n(char* str1, char* str2, int n) { 
-	str1 = concat(str1, str2, n); 
-}
-*/
 int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outfile)
 {
 	// file_name,file_type,file_size,file_access,file_created_date,file_modification_date,md5,sha1,sha256
@@ -62,7 +46,6 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	if(flag & FLAGS_O){
 		filedes = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0644);
 		dup2(filedes, STDOUT_FILENO);
-
 	}
 
 	strcpy(full_cmd, "file ");
@@ -72,7 +55,6 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
         printf("Error opening file pipe!\n");
         return -1;
     }
-	write(STDOUT_FILENO, ret_string, strlen(ret_string));
 
 	int started = 0;
 	char * next;
@@ -81,31 +63,20 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			next = strtok(buf, ":");
 			concat(&ret_string, next, strlen(next));
 			concat(&ret_string, ",", 1);
-			//write(STDOUT_FILENO, next, strlen(next));
-			//write(STDOUT_FILENO, ",", 1);
 			next = strtok(NULL, ",");
 			started = 1;
 		}
 		else
 			next = strtok(buf, ",");
 
-		printf(">1 %s\n", ret_string);
 		while(next != NULL){
 			if('\n' == next[strlen(next) - 1]) {
-				printf(">4 %s\n", ret_string);
 				concat(&ret_string, next+1, strlen(next+1)-1);
-				printf(">5 %s\n", ret_string);
-				//write(STDOUT_FILENO, next+1, strlen(next)-2);
 			}
 			else {
 				concat(&ret_string, next+1, strlen(next+1));
-				printf(">2 %s\n", ret_string);
-				//write(STDOUT_FILENO, next+1, strlen(next));
-				// TODO above should be strlen(next) - 1 ????
 			}
 			concat(&ret_string, ",", 1);
-			printf(">3 %s\n", ret_string);
-			//write(STDOUT_FILENO, ",", 1);
 			next = strtok(NULL, ",");
 		}
     }
@@ -117,7 +88,6 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 	n = sprintf(buf, "%ld,", stat_buf.st_size);
 	concat(&ret_string, buf, n);
-	//write(STDOUT_FILENO, buf, n);
 
 	// PERMISSOES  , DEPOIS TEMOS QUE UTILIZAR PROVAVELMENTE O WRITE() PARA ISTO
 	// printf( (S_ISDIR(stat_buf.st_mode)) ? "d" : "-");
@@ -131,21 +101,20 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
     // printf( (stat_buf.st_mode & S_IWOTH) ? "w" : "-");
     // printf( (stat_buf.st_mode & S_IXOTH) ? "x" : "-");
 
-/*
-    printf( (stat_buf.st_mode & S_IRUSR) ? "r" : "");
-    printf( (stat_buf.st_mode & S_IWUSR) ? "w" : "");
-    printf( (stat_buf.st_mode & S_IXUSR) ? "x" : "");
-    printf(","); */
+	if (stat_buf.st_mode & S_IRUSR) concat(&ret_string, "r", 1);
+	if (stat_buf.st_mode & S_IWUSR) concat(&ret_string, "w", 1);
+	if (stat_buf.st_mode & S_IXUSR) concat(&ret_string, "x", 1);
+	concat(&ret_string, ",", 1);
 	fflush(stdout);
 
 	// TODO: Both dates are the same
 	ts = *localtime(&stat_buf.st_ctime);
 	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S,", &ts);
-	//write(STDOUT_FILENO, buf, strlen(buf));
+	concat(&ret_string, buf, strlen(buf));
 
 	ts = *localtime(&stat_buf.st_mtime);
 	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &ts);
-	//write(STDOUT_FILENO, buf, strlen(buf));
+	concat(&ret_string, buf, strlen(buf));
 
 	if (flag & FLAGS_SHA1)
 	{
@@ -159,8 +128,8 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
 			char * next = strtok(buf, " ");
-			write(STDOUT_FILENO, ",", 1);
-			write(STDOUT_FILENO, next, strlen(next));
+			concat(&ret_string, ",", 1);
+			concat(&ret_string, next, strlen(next));
 		}
 
 		if(pclose(fp))  {
@@ -180,8 +149,8 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
 			char * next = strtok(buf, " ");
-			write(STDOUT_FILENO, ",", 1);
-			write(STDOUT_FILENO, next, strlen(next));
+			concat(&ret_string, ",", 1);
+			concat(&ret_string, next, strlen(next));
 		}
 
 		if(pclose(fp))  {
@@ -203,8 +172,8 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
 			char * next = strtok(buf, " ");
-			write(STDOUT_FILENO, ",", 1);
-			write(STDOUT_FILENO, next, strlen(next));
+			concat(&ret_string, ",", 1);
+			concat(&ret_string, next, strlen(next));
 		}
 
 		if(pclose(fp))  {
@@ -213,13 +182,12 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 	}
 
-	//write(STDOUT_FILENO, "\n", 1);
-
 	if(flag & FLAGS_O){
 		close(filedes);
 	}
 
 	write(STDOUT_FILENO, ret_string, strlen(ret_string));
+	write(STDOUT_FILENO, "\n", 1);
 	free(ret_string);
 	return 0;
 }

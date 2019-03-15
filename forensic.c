@@ -12,24 +12,23 @@
 #include <wait.h>
 
 // TODO free memory after using concat
-void concat(char* str1, char* str2, int n) {
-	const size_t len1 = strlen(str1);
+void concat(char* str1[], char* str2, int n) {
+	const size_t len1 = strlen(*str1);
     const size_t len2 = n < strlen(str2) ? n : strlen(str2);
-    str1 = (char*) realloc(str1, len1 + len2 + 1); // +1 for the null-terminator
+    *str1 = (char*) realloc(*str1, len1 + len2 + 1); // +1 for the null-terminator
 
 	/* Check for errors */
-	if (str1 == NULL) {
+	if (*str1 == NULL) {
 		perror("realloc");
 		exit(1);
 	}
 
 	/* Concatenate str2 */
-    memcpy(str1 + len1, str2, len2);
-	str1[len1+len2] = '\0';
+	strncat(*str1, str2, len2);
 
 	// TODO
 	// Ele aqui fica bem, mas depois na funcao principal nao fica
-	printf("%s\n", str1);
+	printf("%s\n", *str1);
 }
 
 /*
@@ -80,8 +79,8 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
     while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
 		if (!started) {
 			next = strtok(buf, ":");
-			concat(ret_string, next, strlen(next));
-			concat(ret_string, ",", 1);
+			concat(&ret_string, next, strlen(next));
+			concat(&ret_string, ",", 1);
 			//write(STDOUT_FILENO, next, strlen(next));
 			//write(STDOUT_FILENO, ",", 1);
 			next = strtok(NULL, ",");
@@ -94,17 +93,17 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		while(next != NULL){
 			if('\n' == next[strlen(next) - 1]) {
 				printf(">4 %s\n", ret_string);
-				concat(ret_string, next+1, strlen(next+1)-1);
+				concat(&ret_string, next+1, strlen(next+1)-1);
 				printf(">5 %s\n", ret_string);
 				//write(STDOUT_FILENO, next+1, strlen(next)-2);
 			}
 			else {
-				concat(ret_string, next+1, strlen(next+1));
+				concat(&ret_string, next+1, strlen(next+1));
 				printf(">2 %s\n", ret_string);
 				//write(STDOUT_FILENO, next+1, strlen(next));
 				// TODO above should be strlen(next) - 1 ????
 			}
-			concat(ret_string, ",", 1);
+			concat(&ret_string, ",", 1);
 			printf(">3 %s\n", ret_string);
 			//write(STDOUT_FILENO, ",", 1);
 			next = strtok(NULL, ",");
@@ -117,7 +116,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
     }
 
 	n = sprintf(buf, "%ld,", stat_buf.st_size);
-	concat(ret_string, buf, n);
+	concat(&ret_string, buf, n);
 	//write(STDOUT_FILENO, buf, n);
 
 	// PERMISSOES  , DEPOIS TEMOS QUE UTILIZAR PROVAVELMENTE O WRITE() PARA ISTO

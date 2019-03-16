@@ -3,6 +3,7 @@
 #include <string.h>
 #include "parse.h"
 
+// TODO: virgula a seguir a algoritmo aceite
 char parse_cmd(int argc, char * argv[], char * output[]){
 	char flags = 0;
 	// printf("Usage: ./forensic [-r] [-h [md5[,sha1[,sha256]]] [-o <outfile>] [-v] <file|dir>\n");

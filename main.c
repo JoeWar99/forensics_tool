@@ -7,6 +7,7 @@
 
 #include "forensic.h"
 #include "parse.h"
+#include "log.h"
 
 
 int dir_forensic(char flag, char *start_point, char *outfile) {
@@ -65,14 +66,43 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 	return 0;
 }
 
+char * cmd2strg(char* firstWord, int argc, char * argv[]) {
+    size_t totalSize = 0;
+    for (int i = 0; i < argc; i++)
+       totalSize += strlen(argv[i]);
+    
+    char * ret = NULL;
+	size_t mallocSize = totalSize + argc;
+	if(firstWord != NULL)
+		mallocSize += strlen(firstWord) + 1;
+
+    if ((ret = malloc(mallocSize)) == NULL) {
+        perror("cmd2str");
+		return NULL;
+    }
+	if(firstWord != NULL){
+		strcat(ret, firstWord);
+		strcat(ret, " ");
+	}
+
+	strcat(ret, argv[0]);
+    for (int i = 1; i < argc; i++) {
+		strcat(ret, " ");
+        strcat(ret, argv[i]);
+    }
+
+    return ret;
+}
+
 int main(int argc, char *argv[])
 {
-
 	if (argc < 2 || argc > 8)
 	{
 		printf("Usage: ./forensic [-r] [-h [md5[,sha1[,sha256]]] [-o <outfile>] [-v] <file|dir>\n");
 		exit(1);
 	}
+
+	int ret;
 
 	/* 0 | r | h | md5 | sha1 | sha256 | o | v */
 	char flags = 0;
@@ -107,14 +137,19 @@ int main(int argc, char *argv[])
 	// TODO: LOGFILE
 	/* Get log file name from environment variable */
 	if (flags & FLAGS_V)
-		log_file = getenv("LOGFILENAME");
+		if((ret = initialize_log()) != 0){
+			fprintf(stderr, "Error initializing log: %d\n", ret);
+			return -1;
+		}
 
 	//printf("0x%x\n", flags);
 	if (out_file != NULL)
 		printf("%s\n", out_file);
 	if (log_file != NULL)
 		printf("%s\n", log_file);
-	//printf("%s\n", start_point);
+
+	
+	write_in_log(cmd2strg("COMMAND", argc, argv));
 
 	/* If its a file display its info */
 	if (S_ISREG(stat_buf.st_mode))
@@ -128,6 +163,14 @@ int main(int argc, char *argv[])
 			
 		dir_forensic(flags, start_point, out_file);
 		}
+
+
+	if (flags & FLAGS_V)
+		if((ret = close_log()) != 0){
+			fprintf(stderr, "Error closing log: %d\n", ret);
+			return -1;
+		}
+
 
 	return 0;
 }

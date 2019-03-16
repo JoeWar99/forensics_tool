@@ -1,5 +1,6 @@
 #include "forensic.h"
 #include "parse.h"
+#include "log.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -12,7 +13,7 @@
 #include <wait.h>
 
 // TODO free memory after using concat
-void concat(char* str1[], char* str2, int n) {
+void concat(char* str1[], char* str2, size_t n) {
 	const size_t len1 = strlen(*str1);
     const size_t len2 = n < strlen(str2) ? n : strlen(str2);
     *str1 = (char*) realloc(*str1, len1 + len2 + 1); // +1 for the null-terminator
@@ -189,5 +190,16 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	write(STDOUT_FILENO, ret_string, strlen(ret_string));
 	write(STDOUT_FILENO, "\n", 1);
 	free(ret_string);
+
+	char * logDesc = (char *) malloc(8 + strlen(start_point) + 1);
+	if(logDesc == NULL){
+		perror("logDesc");
+		return -2;
+	}
+	strcat(logDesc, "ANALIZED ");
+	strcat(logDesc, start_point);
+
+	write_in_log(logDesc);
+
 	return 0;
 }

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
-
+#include <wait.h>
 #include "forensic.h"
 #include "parse.h"
 #include "log.h"
@@ -77,6 +77,9 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 
 				/* Kill child */
 				exit(0);
+			}
+			else{
+				wait(NULL);
 			}
 		}
 	}

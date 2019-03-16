@@ -42,11 +42,10 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	int filedes;
 	char * ret_string = (char *) malloc(1);
 	memset(ret_string, '\0', 1);
-	
-	
+
+	/* Open file */
 	if(flag & FLAGS_O){
 		filedes = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0644);
-		dup2(filedes, STDOUT_FILENO);
 	}
 
 	strcpy(full_cmd, "file ");
@@ -182,14 +181,14 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			return -1;
 		}
 	}
+	
+	concat(&ret_string, "\n", 1);
+	write(filedes, ret_string, strlen(ret_string));
+	free(ret_string);
 
-	if(flag & FLAGS_O){
+	if(flag & FLAGS_O) {
 		close(filedes);
 	}
-
-	write(STDOUT_FILENO, ret_string, strlen(ret_string));
-	write(STDOUT_FILENO, "\n", 1);
-	free(ret_string);
 
 	char * logDesc = (char *) malloc(8 + strlen(start_point) + 1);
 	if(logDesc == NULL){

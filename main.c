@@ -4,11 +4,12 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "forensic.h"
 #include "parse.h"
 #include "log.h"
-
+#include "sig_handlers.h"
 
 int dir_forensic(char flag, char *start_point, char *outfile) {
 
@@ -40,7 +41,10 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 		}
 
 		/* If its a file print its information */
-		if (S_ISREG(stat_buf.st_mode)) file_forensic(flag, name, stat_buf, outfile);
+		if (S_ISREG(stat_buf.st_mode)) {
+			if (flag & FLAGS_O) raise(SIGUSR2);
+			file_forensic(flag, name, stat_buf, outfile);
+		}
 
 		/* If its a directory and recursive bit is on, read subdirectories */
 		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R) {
@@ -53,9 +57,25 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 				perror("fork");
 				exit(1);
 			}
-			/* Look recursively through the folder */
 			if (pid == 0) {
+
+				/* Override parent signal handlers */
+				if (flag & FLAGS_O) {
+					struct sigaction action;
+					action.sa_handler = sigusr_handler_child;
+					sigemptyset(&action.sa_mask);
+					action.sa_flags = 0;
+					sigaction(SIGUSR1, &action, NULL);
+					sigaction(SIGUSR2, &action, NULL);
+				}
+
+				/* Generate SIGUSR1 signal */
+				if (flag & FLAGS_O) raise(SIGUSR1);
+
+				/* Look recursively through the folder */
 				dir_forensic(flag, name, outfile);
+
+				/* Kill child */
 				exit(0);
 			}
 		}
@@ -134,6 +154,16 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
+	/* Install signal handlers if -o flag active */
+	if (flags & FLAGS_O) {
+		struct sigaction action;
+		action.sa_handler = sigusr_handler;
+		sigemptyset(&action.sa_mask);
+		action.sa_flags = 0;
+		sigaction(SIGUSR1, &action, NULL);
+		sigaction(SIGUSR2, &action, NULL);
+	}
+
 	// TODO: LOGFILE
 	/* Get log file name from environment variable */
 	if (flags & FLAGS_V)
@@ -142,9 +172,6 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 
-	//printf("0x%x\n", flags);
-	if (out_file != NULL)
-		printf("%s\n", out_file);
 	if (log_file != NULL)
 		printf("%s\n", log_file);
 
@@ -152,8 +179,10 @@ int main(int argc, char *argv[])
 	write_in_log(cmd2strg("COMMAND", argc, argv));
 
 	/* If its a file display its info */
-	if (S_ISREG(stat_buf.st_mode))
+	if (S_ISREG(stat_buf.st_mode)) {
+		if (flags & FLAGS_O) raise(SIGUSR2);
 		file_forensic(flags, start_point, stat_buf, out_file);
+	}
 
 	/* If its a directory go inside it */
 	else if (S_ISDIR(stat_buf.st_mode)) {
@@ -161,6 +190,8 @@ int main(int argc, char *argv[])
 		if (start_point[strlen(start_point)-1] == '/')
 			memset(start_point+strlen(start_point)-1, '\0', 1);
 			
+		if (flags & FLAGS_O) raise(SIGUSR1);
+
 		dir_forensic(flags, start_point, out_file);
 		}
 

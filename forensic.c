@@ -12,7 +12,6 @@
 #include <time.h>
 #include <wait.h>
 
-// TODO free memory after using concat
 void concat(char* str1[], char* str2, size_t n) {
 	const size_t len1 = strlen(*str1);
     const size_t len2 = n < strlen(str2) ? n : strlen(str2);
@@ -42,6 +41,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	FILE *fp;
 	int filedes;
 	char * ret_string = (char *) malloc(1);
+	memset(ret_string, '\0', 1);
 	
 	
 	if(flag & FLAGS_O){
@@ -196,10 +196,13 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		perror("logDesc");
 		return -2;
 	}
+	
+	memset(logDesc, '\0', 1);
 	strcat(logDesc, "ANALIZED ");
 	strcat(logDesc, start_point);
 
 	write_in_log(logDesc);
+	free(logDesc);
 
 	return 0;
 }

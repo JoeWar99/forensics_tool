@@ -37,9 +37,10 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	struct tm ts;
 	char buf[BUFFER_SIZE];
 	char * full_cmd = (char *) malloc( 1 + strlen(start_point) + strlen("sha256sum "));
+	memset(full_cmd, '\0', 1);
 	int n;
 	FILE *fp;
-	int filedes;
+	int filedes = STDOUT_FILENO;
 	char * ret_string = (char *) malloc(1);
 	memset(ret_string, '\0', 1);
 
@@ -190,7 +191,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		close(filedes);
 	}
 
-	char * logDesc = (char *) malloc(8 + strlen(start_point) + 1);
+	char * logDesc = (char *) malloc(9 + strlen(start_point) + 1);
 	if(logDesc == NULL){
 		perror("logDesc");
 		return -2;
@@ -202,6 +203,8 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 	write_in_log(logDesc);
 	free(logDesc);
+
+	free(full_cmd);
 
 	return 0;
 }

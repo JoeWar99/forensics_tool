@@ -103,6 +103,7 @@ char * cmd2strg(char* firstWord, int argc, char * argv[]) {
         perror("cmd2str");
 		return NULL;
     }
+	memset(ret, '\0', 1);
 	if(firstWord != NULL){
 		strcat(ret, firstWord);
 		strcat(ret, " ");
@@ -178,8 +179,9 @@ int main(int argc, char *argv[])
 	if (log_file != NULL)
 		printf("%s\n", log_file);
 
-	
-	write_in_log(cmd2strg("COMMAND", argc, argv));
+	char * cmd = cmd2strg("COMMAND", argc, argv);
+	write_in_log(cmd);
+	free(cmd);
 
 	/* If its a file display its info */
 	if (S_ISREG(stat_buf.st_mode)) {
@@ -196,7 +198,7 @@ int main(int argc, char *argv[])
 		if (flags & FLAGS_O) raise(SIGUSR1);
 
 		dir_forensic(flags, start_point, out_file);
-		}
+	}
 
 
 	if (flags & FLAGS_V)
@@ -204,6 +206,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Error closing log: %d\n", ret);
 			return -1;
 		}
+
+	if (out_file != NULL) {
+		free(out_file);
+	}
 
 	return 0;
 }

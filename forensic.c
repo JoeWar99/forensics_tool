@@ -108,7 +108,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	fflush(stdout);
 
 	// TODO: Both dates are the same
-	ts = *localtime(&stat_buf.st_ctime);
+	ts = *localtime(&stat_buf.st_atime);
 	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S,", &ts);
 	concat(&ret_string, buf, strlen(buf));
 

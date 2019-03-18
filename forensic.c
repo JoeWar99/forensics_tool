@@ -82,7 +82,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
     }
 
     if(pclose(fp))  {
-        printf("Command not found or exited with error status\n");
+        printf("Command not found or exited with error status. FILE: %s\n", start_point);
         return -1;
     }
 
@@ -133,7 +133,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 
 		if(pclose(fp))  {
-			printf("Command not found or exited with error status\n");
+			printf("Command not found or exited with error status. SHA1SUM\n");
 			return -1;
 		}
 	}
@@ -154,7 +154,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 
 		if(pclose(fp))  {
-			printf("Command not found or exited with error status\n");
+			printf("Command not found or exited with error status. SHA256SUM\n");
 			return -1;
 		}
 	}
@@ -177,7 +177,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 
 		if(pclose(fp))  {
-			printf("Command not found or exited with error status\n");
+			printf("Command not found or exited with error status. MD5SUM\n");
 			return -1;
 		}
 	}

@@ -57,7 +57,7 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 				perror("fork");
 				exit(1);
 			}
-			if (pid == 0) {
+			else if (pid == 0) {
 
 				/* Override parent signal handlers */
 				if (flag & FLAGS_O) {
@@ -204,7 +204,6 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Error closing log: %d\n", ret);
 			return -1;
 		}
-
 
 	return 0;
 }

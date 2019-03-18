@@ -34,9 +34,9 @@ void write_in_log(char * act){
 
 	if(myLog != NULL){
 		// Anchor Left
-		// fprintf(myLog, "%.2f - %-8d - %s\n", real_time * 1000, getpid(), act);
+		fprintf(myLog, "%-8.2f - %-8d - %s\n", real_time * 1000, getpid(), act);
 		// Anchor Right
-		fprintf(myLog, "%*.2f - %*d - %s\n", 8, real_time * 1000, 8, getpid(), act);
+		// fprintf(myLog, "%*.2f - %*d - %s\n", 8, real_time * 1000, 8, getpid(), act);
 		fflush(myLog);
 	}
 }

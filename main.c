@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <signal.h>
 #include <wait.h>
+#include <errno.h>
+
 #include "forensic.h"
 #include "parse.h"
 #include "log.h"
@@ -79,7 +81,10 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 				exit(0);
 			}
 			else{
-				wait(NULL);
+				while(wait(NULL)) {
+					if (errno == EINTR) continue;
+					else break;
+				};
 			}
 		}
 	}

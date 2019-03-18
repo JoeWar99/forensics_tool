@@ -83,7 +83,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
     }
 
     if(pclose(fp))  {
-        printf("Command not found or exited with error status. FILE: %s\n", start_point);
+		perror("pclose");
         return -1;
     }
 

@@ -12,57 +12,67 @@
 #include "parse.h"
 #include "log.h"
 #include "sig_handlers.h"
+extern int sigint_received;
+int dir_forensic(char flag, char *start_point, char *outfile)
+{
 
-int dir_forensic(char flag, char *start_point, char *outfile) {
-
-	DIR * dirp;
+	DIR *dirp;
 	struct dirent *direntp;
 	struct stat stat_buf;
 	char name[260];
 
 	/* Open directory */
-	if ((dirp = opendir(start_point)) == NULL){
+	if ((dirp = opendir(start_point)) == NULL)
+	{
 		perror("start_point");
 		exit(1);
 	}
 
 	/* Read the specified directory */
-	while((direntp = readdir(dirp)) != NULL) {
-
+	while ((direntp = readdir(dirp)) != NULL)
+	{
+	
 		/* Skip . and .. directories */
-		if (!strcmp(direntp->d_name, "..") || !strcmp(direntp->d_name, ".")) continue;
+		if (!strcmp(direntp->d_name, "..") || !strcmp(direntp->d_name, "."))
+			continue;
 
 		/* Assemble new file/directory name */
-		sprintf(name,"%s/%s",start_point,direntp->d_name);
+		sprintf(name, "%s/%s", start_point, direntp->d_name);
 
 		/* Retrieve information */
-		if (lstat(name, &stat_buf)==-1)
+		if (lstat(name, &stat_buf) == -1)
 		{
 			perror("lstat ERROR");
 			exit(3);
 		}
 
 		/* If its a file print its information */
-		if (S_ISREG(stat_buf.st_mode)) {
-			if (flag & FLAGS_O) raise(SIGUSR2);
+		if (S_ISREG(stat_buf.st_mode))
+		{
+			if (flag & FLAGS_O)
+				raise(SIGUSR2);
 			file_forensic(flag, name, stat_buf, outfile);
 		}
 
 		/* If its a directory and recursive bit is on, read subdirectories */
-		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R) {
+		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R)
+		{
 
 			/* Create a child */
 			pid_t pid = fork();
 
 			/* Fork error */
-			if (pid == -1) {
+			if (pid == -1)
+			{
 				perror("fork");
 				exit(1);
 			}
-			else if (pid == 0) {
+			else if (pid == 0)
+			{
 
 				/* Override parent signal handlers */
-				if (flag & FLAGS_O) {
+				if (flag & FLAGS_O)
+				{
 					struct sigaction action;
 					action.sa_handler = sigusr_handler_child;
 					sigemptyset(&action.sa_mask);
@@ -72,7 +82,8 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 				}
 
 				/* Generate SIGUSR1 signal */
-				if (flag & FLAGS_O) raise(SIGUSR1);
+				if (flag & FLAGS_O)
+					raise(SIGUSR1);
 
 				/* Look recursively through the folder */
 				dir_forensic(flag, name, outfile);
@@ -80,47 +91,61 @@ int dir_forensic(char flag, char *start_point, char *outfile) {
 				/* Kill child */
 				exit(0);
 			}
-			else{
-				while(wait(NULL)) {
-					if (errno == EINTR) continue;
-					else break;
+			else
+			{
+				while (wait(NULL))
+				{
+					if (errno == EINTR)
+						continue;
+					else
+						break;
 				};
 			}
 		}
+			
+		if (sigint_received == 1)
+		{
+			printf("sai no ultimo ficheiro %d  %d\n", getpid(), getppid());
+			break;
+		}
 	}
 	/* Close opened directory */
- 	closedir(dirp);
+	closedir(dirp);
 
 	return 0;
 }
 
-char * cmd2strg(char* firstWord, int argc, char * argv[]) {
-    size_t totalSize = 0;
-    for (int i = 0; i < argc; i++)
-       totalSize += strlen(argv[i]);
-    
-    char * ret = NULL;
+char *cmd2strg(char *firstWord, int argc, char *argv[])
+{
+	size_t totalSize = 0;
+	for (int i = 0; i < argc; i++)
+		totalSize += strlen(argv[i]);
+
+	char *ret = NULL;
 	size_t mallocSize = totalSize + argc;
-	if(firstWord != NULL)
+	if (firstWord != NULL)
 		mallocSize += strlen(firstWord) + 1;
 
-    if ((ret = malloc(mallocSize)) == NULL) {
-        perror("cmd2str");
+	if ((ret = malloc(mallocSize)) == NULL)
+	{
+		perror("cmd2str");
 		return NULL;
-    }
+	}
 	memset(ret, '\0', 1);
-	if(firstWord != NULL){
+	if (firstWord != NULL)
+	{
 		strcat(ret, firstWord);
 		strcat(ret, " ");
 	}
 
 	strcat(ret, argv[0]);
-    for (int i = 1; i < argc; i++) {
+	for (int i = 1; i < argc; i++)
+	{
 		strcat(ret, " ");
-        strcat(ret, argv[i]);
-    }
+		strcat(ret, argv[i]);
+	}
 
-    return ret;
+	return ret;
 }
 
 int main(int argc, char *argv[])
@@ -163,8 +188,15 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
+	struct sigaction action2;
+	action2.sa_handler = sigint_handler;
+	sigemptyset(&action2.sa_mask);
+	action2.sa_flags = 0;
+	sigaction(SIGINT, &action2, NULL);
+
 	/* Install signal handlers if -o flag active */
-	if (flags & FLAGS_O) {
+	if (flags & FLAGS_O)
+	{
 		struct sigaction action;
 		action.sa_handler = sigusr_handler;
 		sigemptyset(&action.sa_mask);
@@ -176,7 +208,8 @@ int main(int argc, char *argv[])
 	// TODO: LOGFILE
 	/* Get log file name from environment variable */
 	if (flags & FLAGS_V)
-		if((ret = initialize_log()) != 0){
+		if ((ret = initialize_log()) != 0)
+		{
 			fprintf(stderr, "Error initializing log: %d\n", ret);
 			return -1;
 		}
@@ -184,35 +217,40 @@ int main(int argc, char *argv[])
 	if (log_file != NULL)
 		printf("%s\n", log_file);
 
-	char * cmd = cmd2strg("COMMAND", argc, argv);
+	char *cmd = cmd2strg("COMMAND", argc, argv);
 	write_in_log(cmd);
 	free(cmd);
 
 	/* If its a file display its info */
-	if (S_ISREG(stat_buf.st_mode)) {
-		if (flags & FLAGS_O) raise(SIGUSR2);
+	if (S_ISREG(stat_buf.st_mode))
+	{
+		if (flags & FLAGS_O)
+			raise(SIGUSR2);
 		file_forensic(flags, start_point, stat_buf, out_file);
 	}
 
 	/* If its a directory go inside it */
-	else if (S_ISDIR(stat_buf.st_mode)) {
+	else if (S_ISDIR(stat_buf.st_mode))
+	{
 		/* Remove slash at the end */
-		if (start_point[strlen(start_point)-1] == '/')
-			memset(start_point+strlen(start_point)-1, '\0', 1);
-			
-		if (flags & FLAGS_O) raise(SIGUSR1);
+		if (start_point[strlen(start_point) - 1] == '/')
+			memset(start_point + strlen(start_point) - 1, '\0', 1);
+
+		if (flags & FLAGS_O)
+			raise(SIGUSR1);
 
 		dir_forensic(flags, start_point, out_file);
 	}
 
-
 	if (flags & FLAGS_V)
-		if((ret = close_log()) != 0){
+		if ((ret = close_log()) != 0)
+		{
 			fprintf(stderr, "Error closing log: %d\n", ret);
 			return -1;
 		}
 
-	if (out_file != NULL) {
+	if (out_file != NULL)
+	{
 		free(out_file);
 	}
 

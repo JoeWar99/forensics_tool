@@ -6,6 +6,13 @@
 
 int n_dirs = 0;
 int n_files = 0;
+int sigint_received = 0;
+
+void sigint_handler(int signo){
+	if(signo == SIGINT)
+		sigint_received = 1;
+}
+
 
 void sigusr_handler(int signo) {
 	if (signo == SIGUSR1) {

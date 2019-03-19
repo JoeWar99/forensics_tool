@@ -4,5 +4,6 @@
 void sigusr_handler(int signo);
 
 void sigusr_handler_child(int signo);
+void sigint_handler(int signo);
 
 #endif

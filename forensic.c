@@ -36,7 +36,6 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	// Ex: hello.txt,ASCII text,100,rw,2018-01-04T16:30:19,2018-01-04T16:34:13,
 	//		4ff75ff116aad93549013ef70f41e59c,d2d29b8b66e3ef44f3412224de6624edd09cdb0c,7605bf
 	//		c397c3d78b15a8719ddbfa28e751b81c6127c61a9c171e3db60dd9d046
-	printf("vou escrever ficheiro \n");
 	struct tm ts;
 	char buf[BUFFER_SIZE];
 	char *full_cmd = (char *)malloc(1 + strlen(start_point) + strlen("sha256sum "));
@@ -61,7 +60,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		printf("Error opening file pipe!\n");
 		return -1;
 	}
-	// sleep(2);
+	
 	int started = 0;
 	char *next;
 	while (fgets(buf, BUFFER_SIZE, fp) != NULL)
@@ -91,14 +90,17 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			next = strtok(NULL, ",");
 		}
 	}
-
-	if (pclose(fp))
+	
+	int ret = pclose(fp);
+	if (ret)
 	{
-		printf("entrei na condiçao pclose(fp)\n");
-		if (errno != 0)
+		if (ret == -1)
 		{
-			perror("pclose (file)");
+			perror("pclose");
 			return -1;
+		}
+		else {
+			return PIPE_CMD_ERR;
 		}
 	}
 
@@ -153,10 +155,17 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			concat(&ret_string, next, strlen(next));
 		}
 
-		if (pclose(fp))
+		ret = pclose(fp);
+		if (ret)
 		{
-			perror("pclose (SHA1SUM)");
-			return -1;
+			if (ret == -1)
+			{
+				perror("pclose");
+				return -1;
+			}
+			else {
+				return PIPE_CMD_ERR;
+			}
 		}
 	}
 	if (flag & FLAGS_SHA256)
@@ -177,10 +186,17 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			concat(&ret_string, next, strlen(next));
 		}
 
-		if (pclose(fp))
+		ret = pclose(fp);
+		if (ret)
 		{
-			perror("pclose (SHA256SUM)");
-			return -1;
+			if (ret == -1)
+			{
+				perror("pclose");
+				return -1;
+			}
+			else {
+				return PIPE_CMD_ERR;
+			}
 		}
 	}
 
@@ -202,10 +218,17 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			concat(&ret_string, next, strlen(next));
 		}
 
-		if (pclose(fp))
+		ret = pclose(fp);
+		if (ret)
 		{
-			perror("pclose (MD5)");
-			return -1;
+			if (ret == -1)
+			{
+				perror("pclose");
+				return -1;
+			}
+			else {
+				return PIPE_CMD_ERR;
+			}
 		}
 	}
 
@@ -233,6 +256,5 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	free(logDesc);
 
 	free(full_cmd);
-	printf("sai do ficheiro\n");
 	return 0;
 }

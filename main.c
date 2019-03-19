@@ -51,7 +51,7 @@ int dir_forensic(char flag, char *start_point, char *outfile)
 		{
 			if (flag & FLAGS_O)
 				raise(SIGUSR2);
-			file_forensic(flag, name, stat_buf, outfile);
+			while(file_forensic(flag, name, stat_buf, outfile) == -12);
 		}
 
 		/* If its a directory and recursive bit is on, read subdirectories */
@@ -103,11 +103,7 @@ int dir_forensic(char flag, char *start_point, char *outfile)
 			}
 		}
 			
-		if (sigint_received == 1)
-		{
-			printf("sai no ultimo ficheiro %d  %d\n", getpid(), getppid());
-			break;
-		}
+		if (sigint_received == 1) break;
 	}
 	/* Close opened directory */
 	closedir(dirp);
@@ -191,7 +187,7 @@ int main(int argc, char *argv[])
 	struct sigaction action2;
 	action2.sa_handler = sigint_handler;
 	sigemptyset(&action2.sa_mask);
-	action2.sa_flags = 0;
+	action2.sa_flags = SA_RESTART;
 	sigaction(SIGINT, &action2, NULL);
 
 	/* Install signal handlers if -o flag active */

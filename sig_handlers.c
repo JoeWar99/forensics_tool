@@ -3,14 +3,17 @@
 #include <signal.h>
 
 #include "sig_handlers.h"
+#include "log.h"
 
 int n_dirs = 0;
 int n_files = 0;
 int sigint_received = 0;
 
 void sigint_handler(int signo){
-	if(signo == SIGINT)
+	if(signo == SIGINT){
 		sigint_received = 1;
+		write_in_log("SIGNAL INT");
+	}
 }
 
 

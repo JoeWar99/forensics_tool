@@ -1,10 +1,12 @@
 #include "forensic.h"
+#include "sig_handlers.h"
 #include "parse.h"
 #include "log.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
@@ -12,6 +14,9 @@
 #include <time.h>
 #include <wait.h>
 #include <errno.h>
+
+extern int sigint_received;
+
 
 void concat(char *str1[], char *str2, size_t n)
 {
@@ -23,11 +28,114 @@ void concat(char *str1[], char *str2, size_t n)
 	if (*str1 == NULL)
 	{
 		perror("realloc");
-		exit(1);
+		return;
 	}
 
 	/* Concatenate str2 */
 	strncat(*str1, str2, len2);
+}
+
+int dir_forensic(char flag, char *start_point, char *outfile)
+{
+
+	DIR *dirp;
+	struct dirent *direntp;
+	struct stat stat_buf;
+	char name[260];
+
+	/* Open directory */
+	if ((dirp = opendir(start_point)) == NULL)
+	{
+		perror("start_point");
+		exit(1);
+	}
+
+	/* Read the specified directory */
+	while ((direntp = readdir(dirp)) != NULL)
+	{
+	
+		/* Skip . and .. directories */
+		if (!strcmp(direntp->d_name, "..") || !strcmp(direntp->d_name, "."))
+			continue;
+
+		/* Assemble new file/directory name */
+		sprintf(name, "%s/%s", start_point, direntp->d_name);
+		// TODO: bug here: qd o ficheiro tem espacos
+				// printf("%s\n", name);
+
+		/* Retrieve information */
+		if (lstat(name, &stat_buf) == -1)
+		{
+			perror("lstat ERROR");
+			exit(3);
+		}
+
+		/* If its a file print its information */
+		if (S_ISREG(stat_buf.st_mode))
+		{
+			if (flag & FLAGS_O){
+				write_in_log("SIGNAL USR2");
+				raise(SIGUSR2);
+			}
+			while(file_forensic(flag, name, stat_buf, outfile) == -12);
+		}
+
+		/* If its a directory and recursive bit is on, read subdirectories */
+		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R)
+		{
+
+			/* Create a child */
+			pid_t pid = fork();
+
+			/* Fork error */
+			if (pid == -1)
+			{
+				perror("fork");
+				exit(1);
+			}
+			else if (pid == 0)
+			{
+
+				/* Override parent signal handlers */
+				if (flag & FLAGS_O)
+				{
+					struct sigaction action;
+					action.sa_handler = sigusr_handler_child;
+					sigemptyset(&action.sa_mask);
+					action.sa_flags = 0;
+					sigaction(SIGUSR1, &action, NULL);
+					sigaction(SIGUSR2, &action, NULL);
+				}
+
+				/* Generate SIGUSR1 signal */
+				if (flag & FLAGS_O){
+					write_in_log("SIGNAL USR1");
+					raise(SIGUSR1);
+				}
+				/* Look recursively through the folder */
+				dir_forensic(flag, name, outfile);
+
+				/* Kill child */
+				exit(0);
+			}
+			else
+			{
+				while (wait(NULL))
+				{
+					if (errno == EINTR)
+						continue;
+					else
+						break;
+				};
+			}
+		}
+			
+		if (sigint_received == 1) break;
+	}
+	/* Close opened directory */
+	closedir(dirp);
+
+	return 0;
 }
 
 int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outfile)

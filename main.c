@@ -1,116 +1,14 @@
-#include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
-#include <wait.h>
-#include <errno.h>
 
+#include "sig_handlers.h"
 #include "forensic.h"
 #include "parse.h"
 #include "log.h"
-#include "sig_handlers.h"
-extern int sigint_received;
-int dir_forensic(char flag, char *start_point, char *outfile)
-{
-
-	DIR *dirp;
-	struct dirent *direntp;
-	struct stat stat_buf;
-	char name[260];
-
-	/* Open directory */
-	if ((dirp = opendir(start_point)) == NULL)
-	{
-		perror("start_point");
-		exit(1);
-	}
-
-	/* Read the specified directory */
-	while ((direntp = readdir(dirp)) != NULL)
-	{
-	
-		/* Skip . and .. directories */
-		if (!strcmp(direntp->d_name, "..") || !strcmp(direntp->d_name, "."))
-			continue;
-
-		/* Assemble new file/directory name */
-		sprintf(name, "%s/%s", start_point, direntp->d_name);
-
-		/* Retrieve information */
-		if (lstat(name, &stat_buf) == -1)
-		{
-			perror("lstat ERROR");
-			exit(3);
-		}
-
-		/* If its a file print its information */
-		if (S_ISREG(stat_buf.st_mode))
-		{
-			if (flag & FLAGS_O)
-				raise(SIGUSR2);
-			while(file_forensic(flag, name, stat_buf, outfile) == -12);
-		}
-
-		/* If its a directory and recursive bit is on, read subdirectories */
-		else if (S_ISDIR(stat_buf.st_mode) && flag & FLAGS_R)
-		{
-
-			/* Create a child */
-			pid_t pid = fork();
-
-			/* Fork error */
-			if (pid == -1)
-			{
-				perror("fork");
-				exit(1);
-			}
-			else if (pid == 0)
-			{
-
-				/* Override parent signal handlers */
-				if (flag & FLAGS_O)
-				{
-					struct sigaction action;
-					action.sa_handler = sigusr_handler_child;
-					sigemptyset(&action.sa_mask);
-					action.sa_flags = 0;
-					sigaction(SIGUSR1, &action, NULL);
-					sigaction(SIGUSR2, &action, NULL);
-				}
-
-				/* Generate SIGUSR1 signal */
-				if (flag & FLAGS_O)
-					raise(SIGUSR1);
-
-				/* Look recursively through the folder */
-				dir_forensic(flag, name, outfile);
-
-				/* Kill child */
-				exit(0);
-			}
-			else
-			{
-				while (wait(NULL))
-				{
-					if (errno == EINTR)
-						continue;
-					else
-						break;
-				};
-			}
-		}
-			
-		if (sigint_received == 1) break;
-	}
-	/* Close opened directory */
-	closedir(dirp);
-
-	return 0;
-}
-
+ 
 char *cmd2strg(char *firstWord, int argc, char *argv[])
 {
 	size_t totalSize = 0;
@@ -220,8 +118,10 @@ int main(int argc, char *argv[])
 	/* If its a file display its info */
 	if (S_ISREG(stat_buf.st_mode))
 	{
-		if (flags & FLAGS_O)
+		if (flags & FLAGS_O){
+			write_in_log("SIGNAL USR2");
 			raise(SIGUSR2);
+		}
 		file_forensic(flags, start_point, stat_buf, out_file);
 	}
 
@@ -232,8 +132,10 @@ int main(int argc, char *argv[])
 		if (start_point[strlen(start_point) - 1] == '/')
 			memset(start_point + strlen(start_point) - 1, '\0', 1);
 
-		if (flags & FLAGS_O)
+		if (flags & FLAGS_O){
+			write_in_log("SIGNAL USR1");
 			raise(SIGUSR1);
+		}
 
 		dir_forensic(flags, start_point, out_file);
 	}

@@ -50,7 +50,8 @@ char parse_cmd(int argc, char * argv[], char * output[]){
             flags |= FLAGS_H;
 
             /* Iterate through the algorithms specified */
-            char * algorithms = argv[i+1];
+            char * algorithms = (char*) malloc(sizeof(char) * strlen(argv[i+1] +1));
+            algorithms = strcpy(algorithms, argv[i+1]);
             char * next = strtok(algorithms, ",");
             if (next == NULL) {
 				fprintf(stderr, "-h flag requires an algorithm\n");

@@ -60,8 +60,6 @@ int dir_forensic(char flag, char *start_point, char *outfile)
 
 		/* Assemble new file/directory name */
 		sprintf(name, "%s/%s", start_point, direntp->d_name);
-		// TODO: bug here: qd o ficheiro tem espacos
-				// printf("%s\n", name);
 
 		/* Retrieve information */
 		if (lstat(name, &stat_buf) == -1)
@@ -77,7 +75,7 @@ int dir_forensic(char flag, char *start_point, char *outfile)
 				write_in_log("SIGNAL USR2");
 				raise(SIGUSR2);
 			}
-			while(file_forensic(flag, name, stat_buf, outfile) == -12);
+			while(file_forensic(flag, name, stat_buf, outfile) == PIPE_CMD_ERR);
 		}
 
 		/* If its a directory and recursive bit is on, read subdirectories */
@@ -154,7 +152,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	char *ret_string = (char *)malloc(1);
 	memset(ret_string, '\0', 1);
 
-	/* Open file */
+	/* Open output file */
 	if (flag & FLAGS_O)
 	{
 		filedes = open(outfile, O_WRONLY | O_APPEND | O_CREAT, 0644);
@@ -162,15 +160,16 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 
 	strcpy(full_cmd, "file ");
 	strcat(full_cmd, start_point);
-
+	/* Pipe with file command */
 	if ((fp = popen(full_cmd, "r")) == NULL)
 	{
-		printf("Error opening file pipe!\n");
+		fprintf(stderr, "Error opening file pipe!\n");
 		return -1;
 	}
 	
 	int started = 0;
 	char *next;
+	/* Parsing file command output */
 	while (fgets(buf, BUFFER_SIZE, fp) != NULL)
 	{
 		if (!started)
@@ -198,7 +197,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			next = strtok(NULL, ",");
 		}
 	}
-	
+	/* Closing pipe */
 	int ret = pclose(fp);
 	if (ret)
 	{
@@ -212,21 +211,11 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 		}
 	}
 
+	/* Get file size */
 	n = sprintf(buf, "%ld,", stat_buf.st_size);
 	concat(&ret_string, buf, n);
 
-	// PERMISSOES  , DEPOIS TEMOS QUE UTILIZAR PROVAVELMENTE O WRITE() PARA ISTO
-	// printf( (S_ISDIR(stat_buf.st_mode)) ? "d" : "-");
-	// printf( (stat_buf.st_mode & S_IRUSR) ? "r" : "-");
-	// printf( (stat_buf.st_mode & S_IWUSR) ? "w" : "-");
-	// printf( (stat_buf.st_mode & S_IXUSR) ? "x" : "-");
-	// printf( (stat_buf.st_mode & S_IRGRP) ? "r" : "-");
-	// printf( (stat_buf.st_mode & S_IWGRP) ? "w" : "-");
-	// printf( (stat_buf.st_mode & S_IXGRP) ? "x" : "-");
-	// printf( (stat_buf.st_mode & S_IROTH) ? "r" : "-");
-	// printf( (stat_buf.st_mode & S_IWOTH) ? "w" : "-");
-	// printf( (stat_buf.st_mode & S_IXOTH) ? "x" : "-");
-
+	/* Get file permission */
 	if (stat_buf.st_mode & S_IRUSR)
 		concat(&ret_string, "r", 1);
 	if (stat_buf.st_mode & S_IWUSR)
@@ -236,33 +225,35 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	concat(&ret_string, ",", 1);
 	fflush(stdout);
 
-	// TODO: Both dates are the same
+	/* Get file access time */
 	ts = *localtime(&stat_buf.st_atime);
 	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S,", &ts);
 	concat(&ret_string, buf, strlen(buf));
 
+	/* Get file modified time */
 	ts = *localtime(&stat_buf.st_mtime);
 	strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &ts);
 	concat(&ret_string, buf, strlen(buf));
 
+	/* Get SHA1SUM of the file */
 	if (flag & FLAGS_SHA1)
 	{
 		strcpy(full_cmd, "sha1sum ");
 		strcat(full_cmd, start_point);
-
+		/* Open pipe with sha1sum command */
 		if ((fp = popen(full_cmd, "r")) == NULL)
 		{
-			printf("Error opening sha1sum pipe!\n");
+			fprintf(stderr, "Error opening sha1sum pipe!\n");
 			return -1;
 		}
-
+		/* Parsing pipe output */
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL)
 		{
 			char *next = strtok(buf, " ");
 			concat(&ret_string, ",", 1);
 			concat(&ret_string, next, strlen(next));
 		}
-
+		/* Close pipe */
 		ret = pclose(fp);
 		if (ret)
 		{
@@ -276,24 +267,25 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			}
 		}
 	}
+	/* Get SHA256SUM of the file */
 	if (flag & FLAGS_SHA256)
 	{
 		strcpy(full_cmd, "sha256sum ");
 		strcat(full_cmd, start_point);
-
+		/* Open pipe with sha256sum command */
 		if ((fp = popen(full_cmd, "r")) == NULL)
 		{
-			printf("Error opening sha256sum pipe!\n");
+			fprintf(stderr, "Error opening sha256sum pipe!\n");
 			return -1;
 		}
-
+		/* Parsing pipe output */
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL)
 		{
 			char *next = strtok(buf, " ");
 			concat(&ret_string, ",", 1);
 			concat(&ret_string, next, strlen(next));
 		}
-
+		/* Close pipe */
 		ret = pclose(fp);
 		if (ret)
 		{
@@ -307,25 +299,25 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 			}
 		}
 	}
-
+	/* Get MD5SUM of the file */
 	if (flag & FLAGS_MD5)
 	{
 		strcpy(full_cmd, "md5sum ");
 		strcat(full_cmd, start_point);
-
+		/* Open pipe with md5sum command */
 		if ((fp = popen(full_cmd, "r")) == NULL)
 		{
-			printf("Error opening md5sum pipe!\n");
+			fprintf(stderr, "Error opening md5sum pipe!\n");
 			return -1;
 		}
-
+		/* Parsing pipe output */
 		while (fgets(buf, BUFFER_SIZE, fp) != NULL)
 		{
 			char *next = strtok(buf, " ");
 			concat(&ret_string, ",", 1);
 			concat(&ret_string, next, strlen(next));
 		}
-
+		/* Close pipe */
 		ret = pclose(fp);
 		if (ret)
 		{
@@ -344,6 +336,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	write(filedes, ret_string, strlen(ret_string));
 	free(ret_string);
 
+	/* Close output file */
 	if (flag & FLAGS_O)
 	{
 		close(filedes);
@@ -360,6 +353,7 @@ int file_forensic(char flag, char *start_point, struct stat stat_buf, char *outf
 	strcat(logDesc, "ANALIZED ");
 	strcat(logDesc, start_point);
 
+	/* Write in log operation performed */
 	write_in_log(logDesc);
 	free(logDesc);
 

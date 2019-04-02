@@ -99,7 +99,6 @@ int main(int argc, char *argv[])
 		sigaction(SIGUSR2, &action, NULL);
 	}
 
-	// TODO: LOGFILE
 	/* Get log file name from environment variable */
 	if (flags & FLAGS_V)
 		if ((ret = initialize_log()) != 0)
@@ -139,7 +138,7 @@ int main(int argc, char *argv[])
 
 		dir_forensic(flags, start_point, out_file);
 	}
-
+	/* Close log file */
 	if (flags & FLAGS_V)
 		if ((ret = close_log()) != 0)
 		{

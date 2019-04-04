@@ -59,7 +59,8 @@ int dir_forensic(char flag, char *start_point, char *outfile)
 			continue;
 
 		/* Assemble new file/directory name */
-		sprintf(name, "%s/%s", start_point, direntp->d_name);
+		if (strcmp(start_point, "/")) sprintf(name, "%s/%s", start_point, direntp->d_name);
+		else sprintf(name, "/%s", direntp->d_name);
 
 		/* Retrieve information */
 		if (lstat(name, &stat_buf) == -1)

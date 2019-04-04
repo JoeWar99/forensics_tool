@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 	else if (S_ISDIR(stat_buf.st_mode))
 	{
 		/* Remove slash at the end */
-		if (start_point[strlen(start_point) - 1] == '/')
+		if (start_point[strlen(start_point) - 1] == '/' && strlen(start_point) != 1)
 			memset(start_point + strlen(start_point) - 1, '\0', 1);
 
 		if (flags & FLAGS_O){

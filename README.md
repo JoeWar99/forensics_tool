@@ -3,7 +3,13 @@ Forensic analysis tool for directories and files in a Unix/Linux environment.
 
 
 ### Description
-The tool is capable of going through a file system, retrieve or create information about the found files, and display it. The user chooses the starting directory or file, the place where all the information should be displayed/stored and wether should be created logs to register the tool operations. In addition, the utilitary deals with the interruption of execution at user command.
+The tool is capable of going through a file system, retrieve or create information about the found files, and display it, similarly to an "ls" command.
+
+The user chooses the starting directory or file, the place where all the information should be displayed/stored and wether should be created logs to register the tool operations. 
+
+In addition, the utilitary deals with the interruption of execution at user command.
+
+Full project specifications and details can be seen in "project.pdf".
 
 ### Technologies Used
 * C

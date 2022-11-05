@@ -15,7 +15,7 @@ Full project specifications and details can be seen in "project.pdf".
 * C
 
 ### Group Members
-* [José Guerra](https://github.com/lockdowpt "lockdowpt")
+* [José Guerra](https://github.com/joewar99 "joewar99")
 * [Manuel Coutinho](https://github.com/ManelCoutinho "ManelCoutinho")
 * [Mário Gil](https://github.com/GambuzX "GambuzX")
 
